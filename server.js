@@ -3,7 +3,9 @@ const fs = require("fs").promises;
 const sanitizeHtml = require("sanitize-html");
 const path = require("path");
 const { stories } = require("./data/stories.js");
+const responder = require("./utils/responder.js");
 const app = express();
+app.use(responder);
 app.use(express.json());
 const PORT = 8000;
 
@@ -15,16 +17,16 @@ app.get("/", async (req, res) => {
     req.url === "/" ? "index.html" : req.url
   );
   const content = await fs.readFile(filePath, "utf-8");
-  res.type(path.extname(filePath));
-  res.send(content);
+  res.type(path.extname(filePath)).ok(content, "OK", { raw: true });
 });
 
 app.get("/sightings", async (req, res) => {
-  const data = await fs.readFile(
+  const filepath = await fs.readFile(
     path.join(__dirname, "data", "data.json"),
     "utf-8"
   );
-  res.type("json").send(data);
+  const data = JSON.parse(filepath);
+  res.ok(data, "OK", { raw: true });
 });
 
 app.post("/sightings", async (req, res) => {
@@ -34,12 +36,13 @@ app.post("/sightings", async (req, res) => {
     title: sanitize(req.body.title),
     location: sanitize(req.body.location),
     text: sanitize(req.body.text),
+    timeStamp: sanitize(req.body.timeStamp),
   };
   const filePath = path.join(__dirname, "data", "data.json");
   const data = JSON.parse(await fs.readFile(filePath, "utf-8"));
   data.push(newSighting);
   await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-  res.status(201).json({ message: "Sighting added" });
+  res.created(newSighting, "Sighting added");
 });
 
 app.get("/api/news", (req, res) => {

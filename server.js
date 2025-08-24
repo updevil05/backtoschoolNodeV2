@@ -1,5 +1,5 @@
 const express = require("express");
-const fs = require("fs").promises;
+const { readFileContent, readJSON, writeJSON } = require("./utils/fileHelper");
 const sanitizeHtml = require("sanitize-html");
 const path = require("path");
 const { stories } = require("./data/stories.js");
@@ -16,16 +16,13 @@ app.get("/", async (req, res) => {
     publicDir,
     req.url === "/" ? "index.html" : req.url
   );
-  const content = await fs.readFile(filePath, "utf-8");
+  const content = await readFileContent(filePath);
   res.type(path.extname(filePath)).ok(content, "OK", { raw: true });
 });
 
 app.get("/sightings", async (req, res) => {
-  const filepath = await fs.readFile(
-    path.join(__dirname, "data", "data.json"),
-    "utf-8"
-  );
-  const data = JSON.parse(filepath);
+  const filePath = path.join(__dirname, "data", "data.json");
+  const data = await readJSON(filePath);
   res.ok(data, "OK", { raw: true });
 });
 
@@ -39,9 +36,9 @@ app.post("/sightings", async (req, res) => {
     timeStamp: sanitize(req.body.timeStamp),
   };
   const filePath = path.join(__dirname, "data", "data.json");
-  const data = JSON.parse(await fs.readFile(filePath, "utf-8"));
+  const data = await readJSON(filePath);
   data.push(newSighting);
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+  await writeJSON(filePath, data);
   res.created(newSighting, "Sighting added");
 });
 
